@@ -8,7 +8,7 @@
     "dev": "nodemon src/index.js"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.21.0",
+    "groq-sdk": "^0.9.0",
     "@line/bot-sdk": "^9.4.0",
     "axios": "^1.7.9",
     "express": "^4.21.2",
