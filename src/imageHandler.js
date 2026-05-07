@@ -1,3 +1,4 @@
+const Groq = require('groq-sdk');
 const { google } = require('googleapis');
 const { appendToSheet } = require('./sheetsHelper');
 const { Readable } = require('stream');
@@ -12,22 +13,28 @@ async function handleImageMessage(event, lineClient, genAI, getGoogleAuth, conve
     text: '📸 ได้รับรูปแล้ว กำลังบันทึกลง Google Drive รอแป๊บนะคะ...',
   });
 
-  // Get image from LINE
   const stream = await lineClient.getMessageContent(messageId);
   const chunks = [];
   for await (const chunk of stream) chunks.push(chunk);
   const imageBuffer = Buffer.concat(chunks);
   const base64Image = imageBuffer.toString('base64');
 
-  // Analyze with Gemini Vision
+  // Analyze with Groq Vision
   let imageDescription = 'รูปภาพ';
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-    const result = await model.generateContent([
-      { inlineData: { data: base64Image, mimeType: 'image/jpeg' } },
-      'อธิบายรูปนี้ภาษาไทยสั้นๆ ใน 1-2 ประโยค',
-    ]);
-    imageDescription = result.response.text();
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    const completion = await groq.chat.completions.create({
+      model: 'llama-3.2-11b-vision-preview',
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Image}` } },
+          { type: 'text', text: 'อธิบายรูปนี้ภาษาไทยสั้นๆ ใน 1-2 ประโยค' },
+        ],
+      }],
+      max_tokens: 300,
+    });
+    imageDescription = completion.choices[0].message.content;
   } catch (e) {
     console.error('Vision error:', e.message);
   }
@@ -61,7 +68,6 @@ async function handleImageMessage(event, lineClient, genAI, getGoogleAuth, conve
     console.error('Drive error:', e.message);
   }
 
-  // Save to Sheets
   const timestamp = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
   try {
     const auth = getGoogleAuth();
