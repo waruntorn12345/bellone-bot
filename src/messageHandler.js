@@ -1,5 +1,5 @@
 const { handleTextMessage } = require('./textHandler');
-const { handleImageMessage, analyzeRequests } = require('./imageHandler');
+const { handleImageMessage } = require('./imageHandler');
 
 const conversationHistory = {};
 
@@ -10,14 +10,6 @@ async function handleMessage(event, lineClient, genAI, getGoogleAuth) {
 
   try {
     if (event.message.type === 'text') {
-      // Check if user typed /analyze
-      if (event.message.text.trim() === '/analyze') {
-        analyzeRequests.add(userId);
-        return lineClient.replyMessage(event.replyToken, {
-          type: 'text',
-          text: '🔍 พร้อมวิเคราะห์รูปแล้วค่า! ส่งรูปมาได้เลยนะคะ 📸',
-        });
-      }
       await handleTextMessage(event, lineClient, genAI, getGoogleAuth, conversationHistory);
     } else if (event.message.type === 'image') {
       await handleImageMessage(event, lineClient, genAI, getGoogleAuth, conversationHistory);
