@@ -2,7 +2,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 async function fetchConcertNews(type = 'general') {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
   const prompt = type === 'kpop'
     ? `สรุปข่าวคอนเสิร์ต K-pop / วงเกาหลีที่น่าสนใจในปี 2025-2026 ทั้งในไทยและต่างประเทศ เช่น BTS, BLACKPINK, aespa, NewJeans, Stray Kids, SEVENTEEN ฯลฯ รวมถึงข่าว tour ใหม่ วันจำหน่ายตั๋ว จัดรูปแบบให้อ่านง่าย ใช้ emoji สวยงาม ภาษาไทย`
