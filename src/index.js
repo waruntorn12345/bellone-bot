@@ -1,6 +1,5 @@
 const express = require('express');
 const { Client, middleware } = require('@line/bot-sdk');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { google } = require('googleapis');
 const { handleMessage } = require('./messageHandler');
 
@@ -12,7 +11,6 @@ const lineConfig = {
 };
 
 const lineClient = new Client(lineConfig);
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const getGoogleAuth = () => {
   const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
@@ -29,7 +27,7 @@ app.post('/webhook', middleware(lineConfig), async (req, res) => {
   res.status(200).json({ status: 'ok' });
   const events = req.body.events;
   await Promise.all(
-    events.map((event) => handleMessage(event, lineClient, genAI, getGoogleAuth))
+    events.map((event) => handleMessage(event, lineClient, null, getGoogleAuth))
   );
 });
 
