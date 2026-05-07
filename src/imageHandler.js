@@ -22,7 +22,7 @@ async function handleImageMessage(event, lineClient, genAI, getGoogleAuth, conve
   // Analyze with Gemini Vision
   let imageDescription = 'รูปภาพ';
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
     const result = await model.generateContent([
       { inlineData: { data: base64Image, mimeType: 'image/jpeg' } },
       'อธิบายรูปนี้ภาษาไทยสั้นๆ ใน 1-2 ประโยค',
