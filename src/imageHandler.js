@@ -1,5 +1,7 @@
 const Groq = require('groq-sdk');
+const { google } = require('googleapis');
 const { appendToSheet } = require('./sheetsHelper');
+const { Readable } = require('stream');
 
 const analyzeRequests = new Set();
 
@@ -15,7 +17,7 @@ async function handleImageMessage(event, lineClient, genAI, getGoogleAuth, conve
 
     await lineClient.replyMessage(replyToken, {
       type: 'text',
-      text: '🔍 กำลังวิเคราะห์รูปค่า รอแป๊บนะคะ...',
+      text: '🔍 กำลังวิเคราะห์และบันทึกรูปค่า รอแป๊บนะคะ...',
     });
 
     // Get image
@@ -45,25 +47,55 @@ async function handleImageMessage(event, lineClient, genAI, getGoogleAuth, conve
       console.error('Vision error:', e.message);
     }
 
+    // Upload to Google Drive folder
+    let driveUrl = '-';
+    try {
+      const auth = getGoogleAuth();
+      const drive = google.drive({ version: 'v3', auth: await auth.getClient() });
+      const fileName = `bellone_${Date.now()}.jpg`;
+
+      const readable = new Readable();
+      readable.push(imageBuffer);
+      readable.push(null);
+
+      const driveResponse = await drive.files.create({
+        requestBody: {
+          name: fileName,
+          mimeType: 'image/jpeg',
+          parents: [process.env.GOOGLE_DRIVE_FOLDER_ID],
+        },
+        media: { mimeType: 'image/jpeg', body: readable },
+        fields: 'id, webViewLink',
+      });
+
+      await drive.permissions.create({
+        fileId: driveResponse.data.id,
+        requestBody: { role: 'reader', type: 'anyone' },
+      });
+
+      driveUrl = driveResponse.data.webViewLink;
+    } catch (e) {
+      console.error('Drive error:', e.message);
+    }
+
     // Save to Sheets
     const timestamp = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
     try {
       const auth = getGoogleAuth();
-      await appendToSheet(auth, 'Images', [[timestamp, messageId, imageDescription, userId]]);
+      await appendToSheet(auth, 'Images', [[timestamp, messageId, driveUrl, imageDescription, userId]]);
     } catch (e) {
       console.error('Sheets error:', e.message);
     }
 
     await lineClient.pushMessage(userId, {
       type: 'text',
-      text: `🖼️ ผลการวิเคราะห์รูป:\n\n${imageDescription}\n\n📊 บันทึกลง Sheets แล้วค่า`,
+      text: `🖼️ ผลการวิเคราะห์รูป:\n\n${imageDescription}\n\n📁 ลิงก์รูป:\n${driveUrl}\n\n📊 บันทึกลง Sheets แล้วค่า`,
     });
 
   } else {
-    // ส่งรูปเฉยๆ ไม่ทำอะไรเลย
     await lineClient.replyMessage(replyToken, {
       type: 'text',
-      text: `💡 ถ้าอยากวิเคราะห์รูป พิมพ์ /analyze แล้วส่งรูปได้เลยนะคะ 📸`,
+      text: `💡 ถ้าอยากวิเคราะห์และบันทึกรูป พิมพ์ /analyze แล้วส่งรูปได้เลยนะคะ 📸`,
     });
   }
 }
