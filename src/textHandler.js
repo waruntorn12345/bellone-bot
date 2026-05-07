@@ -1,3 +1,4 @@
+const Groq = require('groq-sdk');
 const { appendToSheet } = require('./sheetsHelper');
 const { fetchConcertNews } = require('./concertNews');
 
@@ -50,20 +51,23 @@ async function handleTextMessage(event, lineClient, genAI, getGoogleAuth, conver
     });
   }
 
+  // AI Chat with Groq
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
   const history = conversationHistory[userId];
-  const geminiHistory = history.map(msg => ({
-    role: msg.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: msg.content }],
-  }));
 
-  const model = genAI.getGenerativeModel({ 
-    model: 'gemini-2.0-flash',
-    systemInstruction: SYSTEM_PROMPT,
+  const messages = [
+    { role: 'system', content: SYSTEM_PROMPT },
+    ...history.map(msg => ({ role: msg.role === 'assistant' ? 'assistant' : 'user', content: msg.content })),
+    { role: 'user', content: text },
+  ];
+
+  const completion = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    messages,
+    max_tokens: 1024,
   });
 
-  const chat = model.startChat({ history: geminiHistory });
-  const result = await chat.sendMessage(text);
-  const reply = result.response.text();
+  const reply = completion.choices[0].message.content;
 
   history.push({ role: 'user', content: text });
   history.push({ role: 'assistant', content: reply });
