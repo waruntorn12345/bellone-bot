@@ -18,4 +18,4 @@ async function fetchConcertNews(type = 'general') {
 }
 
 module.exports = { fetchConcertNews };
-module.exports = { handleTextMessage };
+
